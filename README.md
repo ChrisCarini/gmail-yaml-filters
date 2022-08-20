@@ -28,9 +28,8 @@ $ gmail-yaml-filters my-filters.yaml > my-filters.xml
 
 If you are the trusting type, you can authorize the script to
 upload new filters and remove obsolete filters via Gmail's API.
-Before using any of these commands, you will need to create
-[`client_secret.json`](https://developers.google.com/identity/protocols/oauth2/web-server#creatingcred)
-and store it in the same directory as your YAML file.
+Before using any of these commands, you will need to follow the
+steps below to [Create `client_secret.json`](#creating-client_secretsjson).
 
 ```bash
 # Upload all filters (and create new labels) from the configuration file
@@ -159,6 +158,22 @@ Supported actions:
 * `trash` (also `delete`)
 
 Any set of rules with `ignore: true` will be ignored and not written to XML.
+
+## Creating `client_secrets.json`
+
+Follow the steps [found here to create a `client_secret.json`](https://developers.google.com/identity/protocols/oauth2/web-server#creatingcred).
+
+We recommend setting the below:
+
+| Option                        | Value                         |
+|-------------------------------|-------------------------------|
+| Application Type              | `Web application`             |
+| Name                          | `mesozoic/gmail-yaml-filters` |
+| Authorized JavaScript origins | _Empty_                       |
+| Authorized redirect URIs      | `http://localhost:8080/`      |
+
+Once you have clicked the `Create` button, click `Download JSON` on the dialog that appears. 
+Save this file as `client_secret.json` to the base directory of this project.
 
 ## Similar Projects
 

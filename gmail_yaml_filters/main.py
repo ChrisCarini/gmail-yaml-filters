@@ -4,13 +4,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import os
 import re
 import sys
 
 import yaml
 from lxml import etree
 
+from gmail_yaml_filters.constants import DEFAULT_CREDENTIAL_STORE, DEFAULT_CLIENT_SECRET_FILE
 from .ruleset import RuleSet
 from .ruleset import ruleset_to_etree
 from .upload import get_gmail_credentials
@@ -43,10 +43,10 @@ def create_parser():
     parser.add_argument('-n', '--dry-run', action='store_true', default=False,
                         help='do not make any API calls to Gmail')
     parser.add_argument('--client-secret', metavar='CLIENT_SECRET_FILE', nargs='?',
-                        help='path to client_secret.json; default is wherever the configuration file is located')
+                        help=f'path to {DEFAULT_CLIENT_SECRET_FILE}; default is wherever the configuration file is located')
     parser.add_argument('--credential-store', metavar='CREDENTIAL_STORE', nargs='?',
                         help='path to persisted credentials; will be written if it does not exist',
-                        default=os.path.join(os.path.expanduser('~'), '.credentials', 'gmail_yaml_filters.json'))
+                        default=DEFAULT_CREDENTIAL_STORE)
 
     # Actions
     parser.add_argument('--upload', dest='action', action='store_const', const='upload',
@@ -88,8 +88,6 @@ def load_data_from_args(action, filename):
 def main():
     parser = create_parser()
     args = parser.parse_args()
-    default_client_secret = 'client_secret.json'
-
     try:
         data = load_data_from_args(args.action, args.filename)
     except ValueError:
@@ -99,7 +97,7 @@ def main():
     ruleset = RuleSet.from_object(rule for rule in data if not rule.get('ignore'))
 
     if not args.client_secret:
-        args.client_secret = default_client_secret
+        args.client_secret = DEFAULT_CLIENT_SECRET_FILE
 
     if args.action == 'xml':
         print(ruleset_to_xml(ruleset))
@@ -124,7 +122,7 @@ def main():
         prune_labels_not_in_ruleset(ruleset, service=gmail, match=match, dry_run=args.dry_run,
                                     continue_on_http_error=args.ignore_errors)
     else:
-        raise argparse.ArgumentError('%r not recognized' % args.action)
+        parser.error(f'"{args.action}" not recognized')
 
 
 if __name__ == '__main__':

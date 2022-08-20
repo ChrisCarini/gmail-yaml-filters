@@ -2,19 +2,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-import argparse
-import os
 import sys
 from collections import defaultdict
 from operator import itemgetter
 
 import apiclient.discovery
 import googleapiclient.errors
-import httplib2
-import oauth2client.client
-import oauth2client.file
-import oauth2client.tools
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 
+from gmail_yaml_filters.constants import DEFAULT_CREDENTIAL_STORE, DEFAULT_SCOPES, DEFAULT_CLIENT_SECRET_FILE
 
 """
 Pushes auto-generated mail filters to the Gmail API.
@@ -241,30 +238,30 @@ def prune_labels_not_in_ruleset(ruleset, service, match=None, dry_run=False,
                     raise
 
 
-def get_gmail_service(credentials):
-    http = credentials.authorize(httplib2.Http())
-    return apiclient.discovery.build('gmail', 'v1', http=http)
+def get_gmail_service(credentials: Credentials):
+    return apiclient.discovery.build('gmail', 'v1', credentials=credentials)
 
 
 def get_gmail_credentials(
-    scopes=[
-        'https://www.googleapis.com/auth/gmail.settings.basic',
-        'https://www.googleapis.com/auth/gmail.labels',
-    ],
-    client_secret_path='client_secret.json',
-    application_name='gmail_yaml_filters',
-    credential_store=os.path.join(os.path.expanduser('~'), '.credentials', 'gmail_yaml_filters.json')
-):  # pragma: no cover
-    if not os.path.exists(os.path.dirname(os.path.abspath(credential_store))):
-        os.makedirs(os.path.dirname(os.path.abspath(credential_store)))
+    scopes=DEFAULT_SCOPES,
+    client_secret_path=DEFAULT_CLIENT_SECRET_FILE,
+    credential_store=DEFAULT_CREDENTIAL_STORE,
+) -> Credentials:  # pragma: no cover
+    if not credential_store.parent.exists():
+        credential_store.parent.mkdir()
 
-    store = oauth2client.file.Storage(os.path.abspath(credential_store))
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-        flow = oauth2client.client.flow_from_clientsecrets(client_secret_path, scopes)
-        flow.user_agent = application_name
-        flags_parser = argparse.ArgumentParser(parents=[oauth2client.tools.argparser])
-        credentials = oauth2client.tools.run_flow(flow, store, flags=flags_parser.parse_args([]))
-        print('Storing credentials to', credential_store, file=sys.stderr)
+    if credential_store.exists():
+        return Credentials.from_authorized_user_file(credential_store)
+
+    flow = InstalledAppFlow.from_client_secrets_file(client_secret_path, scopes=scopes)
+    credentials: Credentials = flow.run_local_server(
+        host='localhost',
+        port=8080,
+        authorization_prompt_message='Please visit this URL: {url}',
+        success_message='The auth flow is complete; you may close this window.',
+        open_browser=True
+    )
+    print('Storing credentials to', credential_store, file=sys.stderr)
+    credential_store.write_text(credentials.to_json())
 
     return credentials

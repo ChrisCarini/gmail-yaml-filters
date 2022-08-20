@@ -7,4 +7,7 @@ __pycache__
 build/
 dist/
 poetry.lock
+activate
+venv/
 venv_*/
+client_secret.json
